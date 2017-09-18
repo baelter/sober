@@ -1,3 +1,5 @@
+import { EventEmitter } from 'events'
+
 function attachEventListener (scope, eventName, handler, capture) {
   scope.addEventListener(eventName, handler, capture)
   return () => {
@@ -7,8 +9,9 @@ function attachEventListener (scope, eventName, handler, capture) {
 
 let componentIndex = 0
 
-class Component {
+class Component extends EventEmitter {
   constructor ({ selector, template, components, element }) {
+    super()
     this._template = template
     this._selector = selector
     this._id = 'c' + componentIndex++
@@ -41,6 +44,7 @@ class Component {
       c._attach()
     })
     this.attached()
+    this.emit('attached')
     return this
   }
 
@@ -55,6 +59,7 @@ class Component {
       this.el.innerHTML = html
       this.parentEl.appendChild(this.el)
     }
+    this.emit('rendered')
     return this
   }
 
@@ -70,6 +75,9 @@ class Component {
     this.removeComponent(selector)
     const component = this._createComponent(selector, Component)
     if (component) {
+      component.on('destroyed', () => {
+        delete this._components[selector]
+      })
       component._attach()
     }
     return component
@@ -107,7 +115,7 @@ class Component {
    * @param {*} selector
    * @param {*} fn
    */
-  on (eventName, selector, fn) {
+  delegate (eventName, selector, fn) {
     const detacher = attachEventListener(this.el, eventName, (event) => {
       const possibleTargets = this.el.querySelectorAll(selector)
       const target = event.target
@@ -127,12 +135,11 @@ class Component {
   }
 
   destroy () {
-    if (this.parentEl) {
+    if (this.parentEl && this.el) {
       this.parentEl.removeChild(this.el)
     }
-    this.template = null
-    this.created = null
-    this.context = null
+    this._template = null
+    this._context = null
     while (this._detachers.length) {
       this._detachers.pop()()
     }
@@ -141,6 +148,10 @@ class Component {
       delete this._components[cSelector]
       component.destroy()
     })
+    this.el = null
+    this.parentEl = null
+    this.emit('destroyed')
+    this.removeAllListeners()
     return this
   }
 }

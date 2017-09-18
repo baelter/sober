@@ -2,10 +2,11 @@
   "name": "sober",
   "version": "0.0.1",
   "description": "",
-  "main": "lib/sober.js",
+  "main": "lib/index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "node_modules/babel-cli/bin/babel.js src --out-dir lib"
+    "prepublish": "node_modules/babel-cli/bin/babel.js src --out-dir lib",
+    "watch": "node_modules/babel-cli/bin/babel.js --watch src --out-dir lib"
   },
   "repository": {
     "type": "git",
