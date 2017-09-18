@@ -1,0 +1,30 @@
+{
+  "name": "sober",
+  "version": "0.0.1",
+  "description": "",
+  "main": "lib/sober.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "node_modules/babel-cli/bin/babel.js src --out-dir lib"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/baelter/sober.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/baelter/sober/issues"
+  },
+  "homepage": "https://github.com/baelter/sober#readme",
+  "dependencies": {
+    "navigo": "^5.3.1"
+  },
+  "devDependencies": {
+    "babel-cli": "^6.26.0",
+    "babel-core": "^6.26.0",
+    "babel-plugin-transform-runtime": "^6.23.0",
+    "babel-preset-env": "^1.6.0",
+    "babel-preset-stage-3": "^6.24.1"
+  }
+}
