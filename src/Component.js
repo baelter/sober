@@ -10,7 +10,7 @@ function attachEventListener (scope, eventName, handler, capture) {
 let componentIndex = 0
 
 class Component extends EventEmitter {
-  constructor ({ selector, template, components, element }) {
+  constructor ({ selector, template, components, element, context }) {
     super()
     this._template = template
     this._selector = selector
@@ -18,6 +18,7 @@ class Component extends EventEmitter {
     this._components = {}
     this._detachers = []
     this._elementType = element || 'div'
+    this._context = context
     if (components) {
       Object.keys(components).forEach((cSelector) => {
         this._createComponent(cSelector, components[cSelector])
@@ -29,37 +30,51 @@ class Component extends EventEmitter {
     if (Component === null) {
       return
     }
-    const scopedSelector = '#' + this._id + ' ' + selector
     if (typeof Component === 'function') {
-      this._components[selector] = new Component(scopedSelector)
+      this._components[selector] = new Component({selector: this._componentSelector(selector)})
     } else if (typeof Component === 'object') {
       this._components[selector] = Component
     }
     return this._components[selector]
   }
 
-  _attach () {
-    this.render()
-    Object.values(this._components).forEach(c => {
-      c._attach()
-    })
-    this.attached()
+  _attach (domScope) {
+    if (this._parentEl) {
+      return
+    }
+    this.render(true, domScope)
     this.emit('attached')
+    this.attached()
+    Object.values(this._components).forEach(c => {
+      c.emit('attached')
+      c.attached()
+    })
     return this
   }
 
-  render () {
+  _componentSelector (selector) {
+    return '#' + this._id + ' ' + selector
+  }
+
+  render (cascade, scope) {
     const html = this._template(this.context())
-    this.parentEl = this.parentEl || document.querySelector(this._selector)
-    if (this.el) {
-      this.el.innerHTML = html
-    } else {
-      this.el = document.createElement(this._elementType)
-      this.el.id = this._id
-      this.el.innerHTML = html
-      this.parentEl.appendChild(this.el)
+    const el = document.createElement(this._elementType)
+    el.innerHTML = html
+    el.id = this._id
+    const fragment = document.createDocumentFragment()
+    fragment.appendChild(el)
+    if (cascade !== false) {
+      Object.values(this._components).forEach(c => {
+        c.render(true, fragment)
+      })
     }
-    this.emit('rendered')
+    if (this._parentEl && this._el) {
+      this._parentEl.replaceChild(fragment, this._el)
+    } else {
+      this._parentEl = scope.querySelector(this._selector)
+      this._parentEl.appendChild(fragment)
+    }
+    this._el = el
     return this
   }
 
@@ -68,17 +83,16 @@ class Component extends EventEmitter {
   }
 
   context () {
-    return {}
+    return this._context || {}
   }
 
   addComponent (selector, Component) {
-    this.removeComponent(selector)
     const component = this._createComponent(selector, Component)
     if (component) {
       component.on('destroyed', () => {
         delete this._components[selector]
       })
-      component._attach()
+      component._attach(document)
     }
     return component
   }
@@ -99,10 +113,12 @@ class Component extends EventEmitter {
       if (typeof component === 'function') {
         // Do not replace if the same class is passed
         if (!(currentComponent instanceof component)) {
+          this.removeComponent(selector)
           this.addComponent(selector, component)
         }
       } else if (typeof component === 'object') {
         // Always replace if an instance is passed
+        this.removeComponent(selector)
         this.addComponent(selector, component)
       }
     })
@@ -116,13 +132,13 @@ class Component extends EventEmitter {
    * @param {*} fn
    */
   delegate (eventName, selector, fn) {
-    const detacher = attachEventListener(this.el, eventName, (event) => {
-      const possibleTargets = this.el.querySelectorAll(selector)
+    const detacher = attachEventListener(this._parentEl, eventName, (event) => {
+      const possibleTargets = this._parentEl.querySelectorAll(this._componentSelector(selector))
       const target = event.target
       for (let i = 0, l = possibleTargets.length; i < l; i++) {
         let el = target
         const p = possibleTargets[i]
-        while (el && el !== this.el) {
+        while (el && el !== this._parentEl) {
           if (el === p) {
             return fn.call(self, event)
           }
@@ -135,8 +151,8 @@ class Component extends EventEmitter {
   }
 
   destroy () {
-    if (this.parentEl && this.el) {
-      this.parentEl.removeChild(this.el)
+    if (this._parentEl && this._el) {
+      this._parentEl.removeChild(this._el)
     }
     this._template = null
     this._context = null
@@ -148,8 +164,8 @@ class Component extends EventEmitter {
       delete this._components[cSelector]
       component.destroy()
     })
-    this.el = null
-    this.parentEl = null
+    this._el = null
+    this._parentEl = null
     this.emit('destroyed')
     this.removeAllListeners()
     return this

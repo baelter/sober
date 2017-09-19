@@ -1,3 +1,4 @@
+import router from './router'
 let currentLayout = null
 
 export default function (BaseComponent, components, selector) {
@@ -8,6 +9,7 @@ export default function (BaseComponent, components, selector) {
       currentLayout.destroy()
     }
     currentLayout = new BaseComponent({selector, components})
-    currentLayout._attach()
+    currentLayout._attach(document)
   }
+  router.updatePageLinks()
 }
