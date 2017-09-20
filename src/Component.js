@@ -17,6 +17,7 @@ class Component extends EventEmitter {
     this._id = 'c' + componentIndex++
     this._components = {}
     this._detachers = []
+    this._listeners = []
     this._elementType = element || 'div'
     this._context = context
     if (components) {
@@ -38,16 +39,12 @@ class Component extends EventEmitter {
     return this._components[selector]
   }
 
-  _attach (domScope) {
-    if (this._parentEl) {
-      return
-    }
-    this.render(true, domScope)
-    this.emit('attached')
+  _attached () {
     this.attached()
+    this.emit('attached')
     Object.values(this._components).forEach(c => {
-      c.emit('attached')
       c.attached()
+      c.emit('attached')
     })
     return this
   }
@@ -56,18 +53,16 @@ class Component extends EventEmitter {
     return '#' + this._id + ' ' + selector
   }
 
-  render (cascade, scope) {
+  render (scope) {
     const html = this._template(this.context())
     const el = document.createElement(this._elementType)
     el.innerHTML = html
     el.id = this._id
     const fragment = document.createDocumentFragment()
     fragment.appendChild(el)
-    if (cascade !== false) {
-      Object.values(this._components).forEach(c => {
-        c.render(true, fragment)
-      })
-    }
+    Object.values(this._components).forEach(c => {
+      c.render(fragment)
+    })
     if (this._parentEl && this._el) {
       this._parentEl.replaceChild(fragment, this._el)
     } else {
@@ -82,6 +77,10 @@ class Component extends EventEmitter {
     // noop
   }
 
+  destroyed () {
+    // noop
+  }
+
   context () {
     return this._context || {}
   }
@@ -92,7 +91,7 @@ class Component extends EventEmitter {
       component.on('destroyed', () => {
         delete this._components[selector]
       })
-      component._attach(document)
+      component.render(document)._attached()
     }
     return component
   }
@@ -150,6 +149,11 @@ class Component extends EventEmitter {
     return detacher
   }
 
+  listen (eventName, emitter, fn) {
+    emitter.on(eventName, fn)
+    this._listeners.push({ listener: fn, emitter, eventName })
+  }
+
   destroy () {
     if (this._parentEl && this._el) {
       this._parentEl.removeChild(this._el)
@@ -159,6 +163,10 @@ class Component extends EventEmitter {
     while (this._detachers.length) {
       this._detachers.pop()()
     }
+    while (this._listeners.length) {
+      let le = this._listeners.pop()
+      le.emitter.removeListener(le.eventName, le.listener)
+    }
     Object.keys(this._components).forEach(cSelector => {
       const component = this._components[cSelector]
       delete this._components[cSelector]
@@ -166,8 +174,9 @@ class Component extends EventEmitter {
     })
     this._el = null
     this._parentEl = null
-    this.emit('destroyed')
     this.removeAllListeners()
+    this.destroyed()
+    this.emit('destroyed')
     return this
   }
 }

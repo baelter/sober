@@ -9,7 +9,7 @@ export default function (BaseComponent, components, selector) {
       currentLayout.destroy()
     }
     currentLayout = new BaseComponent({selector, components})
-    currentLayout._attach(document)
+    currentLayout.render(document)._attached()
   }
   router.updatePageLinks()
 }

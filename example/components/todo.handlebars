@@ -1,0 +1,25 @@
+<div class="container">
+  <form class="todo" action="" method="post">
+    <input name="what" placeholder="What to do?" style="width: 300px;">
+    <button type="submit">Add</button>
+  </form>
+  <ul>
+    {{#each todos}}
+    <li>
+      <span {{#if done}}class="done"{{/if}}>{{what}}</span>
+      <input type="checkbox" name="done" data-id="{{id}}" {{#if done}}checked disabled{{/if}}>
+    </li>
+    {{/each}}
+  </ul>
+</div>
+
+<style>
+  .container {
+    margin: 15px auto;
+    width: 400px;
+  }
+
+  .done {
+    text-decoration: line-through;
+  }
+</style>

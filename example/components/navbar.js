@@ -13,7 +13,8 @@ class Navbar extends Component {
     let page = window.location.pathname.substr(1)
     return { navItems: [
       { title: 'Sober', href: '/', classes: /^\/?$/.test(page) ? 'active' : '' },
-      { title: 'About', href: 'about', classes: /^\/?about$/.test(page) ? 'active' : '' }
+      { title: 'About', href: 'about', classes: /^\/?about$/.test(page) ? 'active' : '' },
+      { title: 'TODO', href: 'todo', classes: /^\/?todo$/.test(page) ? 'active' : '' }
     ] }
   }
 
